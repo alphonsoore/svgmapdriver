@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Driving Game on Map</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { background: #eee; display: block; }
+        #fullscreenButton {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px; /* Width of the square */
+            height: 50px; /* Height of the square */
+            background-color: blue;
+            color: white;
+            font-size: 24px;
+            text-align: center;
+            line-height: 50px; /* Center the letter F vertically */
+            border: none;
+            cursor: pointer;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <button id="fullscreenButton">F</button>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const carImage = new Image();
+        carImage.src = 'car.png'; // Replace with your image path
+
+        const mapImage = new Image();
+        mapImage.src = 'map.svg'; // Replace with your SVG map path
+
+        let car = {
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+            angle: 0,
+            speed: 0,
+        };
+
+        const keys = {
+            up: false,
+            down: false,
+            left: false,
+            right: false,
+        };
+
+        const collisionColor = { r: 255, g: 0, b: 0 }; // Pure red collision color
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            car.x = canvas.width / 2;
+            car.y = canvas.height / 2;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowUp':
+                    keys.up = true; 
+                    break;
+                case 'ArrowDown':
+                    keys.down = true; 
+                    break;
+                case 'ArrowLeft':
+                    keys.left = true; 
+                    break;
+                case 'ArrowRight':
+                    keys.right = true; 
+                    break;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            switch (e.key) {
+                case 'ArrowUp':
+                    keys.up = false; 
+                    break;
+                case 'ArrowDown':
+                    keys.down = false; 
+                    break;
+                case 'ArrowLeft':
+                    keys.left = false; 
+                    break;
+                case 'ArrowRight':
+                    keys.right = false; 
+                    break;
+            }
+        });
+
+        function isCollision(x, y) {
+            const pixelData = ctx.getImageData(x, y, 1, 1).data; // Get the pixel color at the car's position
+            return (pixelData[0] === collisionColor.r && 
+                    pixelData[1] === collisionColor.g && 
+                    pixelData[2] === collisionColor.b);
+        }
+
+        function update() {
+            if (keys.up) {
+                car.speed = 2; 
+            } else if (keys.down) {
+                car.speed = -2; 
+            } else {
+                car.speed = 0; 
+            }
+
+            // Calculate potential new position
+            const newX = car.x + car.speed * Math.cos(car.angle * Math.PI / 180);
+            const newY = car.y + car.speed * Math.sin(car.angle * Math.PI / 180);
+
+            // Check for collision at new position
+            if (!isCollision(Math.floor(newX), Math.floor(newY))) {
+                car.x = newX; // Update position only if no collision
+                car.y = newY;
+            }
+
+            if (keys.left) {
+                car.angle -= 5; 
+            }
+            if (keys.right) {
+                car.angle += 5; 
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(mapImage, 0, 0, canvas.width, canvas.height); // Draw the map
+            ctx.save();
+            ctx.translate(car.x, car.y);
+            ctx.rotate((car.angle + 180) * Math.PI / 180); // Adjust rotation
+            const scaledWidth = carImage.width / 4;
+            const scaledHeight = carImage.height / 4;
+            ctx.drawImage(carImage, -scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        Promise.all([
+            new Promise(resolve => carImage.onload = resolve),
+            new Promise(resolve => mapImage.onload = resolve),
+        ]).then(() => {
+            resizeCanvas();
+            gameLoop();
+        });
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+        });
+
+        const fullscreenButton = document.getElementById('fullscreenButton');
+        fullscreenButton.addEventListener('click', () => {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                document.documentElement.requestFullscreen();
+            }
+        });
+    </script>
+</body>
+</html>
